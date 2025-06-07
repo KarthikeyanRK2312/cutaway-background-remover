@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CutAway - Background Remover</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f8ff;
+      color: #333;
+      transition: background-color 0.3s, color 0.3s;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .dark {
+      background-color: #1e1e1e;
+      color: #eee;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      background-color: #2196f3;
+      color: white;
+    }
+    header h1 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.8rem;
+      margin: 0;
+    }
+    .main-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+      padding: 1rem;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .dark .container {
+      background-color: #2c2c2c;
+    }
+    .upload-section {
+      border: 2px dashed #2196f3;
+      padding: 2rem;
+      border-radius: 10px;
+      cursor: pointer;
+      position: relative;
+    }
+    .upload-section.dragover {
+      background: #e3f2fd;
+    }
+    .upload-section i {
+      font-size: 2rem;
+      color: #2196f3;
+    }
+    .upload-details {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .dark .upload-details {
+      color: #ccc;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .theme-toggle {
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: white;
+    }
+    .download-btn, .clear-btn {
+      display: inline-block;
+      margin: 1rem 0.5rem;
+      background: #2196f3;
+      color: white;
+      padding: 0.5rem 1.5rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s;
+      text-decoration: none;
+    }
+    .download-btn:hover, .clear-btn:hover {
+      background: #1976d2;
+    }
+    .loading {
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .spinner {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #2196f3;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    .sample-images {
+      margin-top: 2rem;
+    }
+    .sample-images .label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      text-align: left;
+    }
+    .sample-images .thumbnails {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .sample-images img {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border: 2px solid #2196f3;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .sample-images img:hover {
+      transform: scale(1.05);
+    }
+    #resultImages img {
+      max-width: 100%;
+      margin: 1rem auto;
+      display: block;
+      border-radius: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-cut"></i> CutAway</h1>
+    <div class="theme-toggle" id="themeToggle"><i class="fas fa-adjust"></i></div>
+  </header>
+  <div class="main-content">
+    <div class="container">
+      <h1 style="padding-bottom: 50px;">Your background, gone in a click.</h1>
+      <div class="upload-section" id="uploadSection">
+        <i class="fas fa-upload"></i><br>
+        Click or drag image to upload
+        <input type="file" id="fileInput" accept="image/*" />
+        <div class="upload-details">Cut image background for 100% <span style="color:#2196f3;font-weight:bold;">FREE</span></div>
+      </div>
+      <div class="loading" id="loading" style="display:none;">
+        <div class="spinner"></div>
+      </div>
+      <div id="resultImages"></div>
+      <a class="download-btn" id="downloadBtn" style="display:none;">Download Image</a>
+      <button class="clear-btn" id="clearBtn" style="display:none;">Clear</button>
+      <div class="sample-images">
+        <div class="label">No image? Try one of these:</div>
+        <div class="thumbnails">
+          <img src="https://picsum.photos/seed/1/300" alt="Sample 1" />
+          <img src="https://picsum.photos/seed/10/300" alt="Sample 2" />
+          <img src="https://picsum.photos/seed/3/300" alt="Sample 3" />
+          <img src="https://picsum.photos/seed/18/300" alt="Sample 4" />
+          <img src="https://picsum.photos/seed/5/300" alt="Sample 5" />
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const REMOVE_BG_API_KEY = 'YOUR_VALID_REMOVE_BG_API_KEY_HERE'; // <-- Replace this!
+
+    const fileInput = document.getElementById('fileInput');
+    const uploadSection = document.getElementById('uploadSection');
+    const loading = document.getElementById('loading');
+    const resultImages = document.getElementById('resultImages');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    document.querySelectorAll('.sample-images img').forEach(img => {
+      img.addEventListener('click', () => handleFileFromURL(img.src));
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) {
+        handleFile(fileInput.files[0]);
+      }
+    });
+
+    uploadSection.addEventListener('click', () => fileInput.click());
+
+    uploadSection.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadSection.classList.add('dragover');
+    });
+
+    uploadSection.addEventListener('dragleave', () => uploadSection.classList.remove('dragover'));
+
+    uploadSection.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadSection.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+    });
+
+    clearBtn.addEventListener('click', () => {
+      resultImages.innerHTML = '';
+      downloadBtn.style.display = 'none';
+      clearBtn.style.display = 'none';
+    });
+
+    function handleFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        displayBeforeImage(e.target.result);
+        removeBackground(file);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleFileFromURL(url) {
+      displayBeforeImage(url);
+      fetch(url)
+        .then(res => res.blob())
+        .then(blob => removeBackground(blob));
+    }
+
+    function displayBeforeImage(src) {
+      resultImages.innerHTML = `<img src="${src}" alt="Before">`;
+      downloadBtn.style.display = 'none';
+      clearBtn.style.display = 'none';
+    }
+
+    function removeBackground(file) {
+      loading.style.display = 'block';
+      const formData = new FormData();
+      formData.append('image_file', file);
+
+      fetch('https://api.remove.bg/v1.0/removebg', {
+        method: 'POST',
+        headers: {
+          'X-Api-Key': 'mNxyK1gn8tJCHUv1S9RnHw3j'
+        },
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) return response.text().then(text => { throw new Error(text); });
+        return response.blob();
+      })
+      .then(blob => {
+        loading.style.display = 'none';
+        const afterImg = document.createElement('img');
+        afterImg.src = URL.createObjectURL(blob);
+        afterImg.alt = 'After';
+        resultImages.appendChild(afterImg);
+        downloadBtn.href = afterImg.src;
+        downloadBtn.download = 'cutaway-output.png';
+        downloadBtn.style.display = 'inline-block';
+        clearBtn.style.display = 'inline-block';
+      })
+      .catch(error => {
+        loading.style.display = 'none';
+        alert('Background removal failed: ' + error.message);
+        console.error(error);
+      });
+    }
+  </script>
+</body>
+</html>
